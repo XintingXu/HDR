@@ -8,6 +8,8 @@
 #include <QVector>
 #include <opencv2/opencv.hpp>
 #include <opencv2/photo.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <QDir>
 
 void save(QVector<cv::Mat *> *);
 cv::Mat* QImage2Mat(const QImage *);
@@ -19,6 +21,7 @@ void cutImages(QVector<QImage*> *srcImages,QVector<cv::Mat*> *destImages,QVector
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
+    QDir::setCurrent(QCoreApplication::applicationDirPath());
 
     QVector<QImage*> source;
 
@@ -109,13 +112,15 @@ int main(int argc, char *argv[])
 }
 
 bool loadImage(QVector<QImage*> *result){
-    QImage *source = new QImage("dog1.jpg");
-    QImage *source2 = new QImage("dog2.jpg");
-    QImage *source3 = new QImage("dog3.jpg");
+    QImage *source1 = new QImage("../temp_images/hdr1.jpg");
+    QImage *source2 = new QImage("../temp_images/hdr2.jpg");
+    QImage *source3 = new QImage("../temp_images/hdr3.jpg");
+    QImage *source4 = new QImage("../temp_images/hdr4.jpg");
 
-    result->append(source);
+    result->append(source1);
     result->append(source2);
     result->append(source3);
+    result->append(source4);
 
     return true;
 }
@@ -242,9 +247,49 @@ void cutImages(QVector<QImage*> *srcImages, QVector<cv::Mat*> *destImages, QVect
 }
 
 void save(QVector<cv::Mat*> *toSave){
-    for(int i = 0 ; i < toSave->length() ; i++){
-        QString fileName;
-        fileName.sprintf("cutted%d.jpg",i);
-        cv::imwrite(fileName.toStdString(),*toSave->at(i));
+    QVector<cv::Mat> images;
+    QVector<float> times;
+
+    times.append(10.0);
+    times.append(2.0);
+    times.append(1.0);
+    times.append(0.5);
+
+    for(int i = 0; i < toSave->length() ; i++){
+        images.push_back((toSave->at(i))->clone());
+        toSave->at(i)->release();
+        delete toSave->at(i);
     }
+
+    QVector<cv::Mat> source_images;
+    cv::Mat response;
+
+    for(int  i = 1 ; i < 5 ; i++){
+        QString fileName;
+        fileName.clear();
+        fileName.sprintf("../temp_images/hdr%d.jpg",i);
+        source_images.push_back(cv::imread(fileName.toStdString()));
+    }
+
+    cv::Ptr<cv::CalibrateDebevec> calibrate_hdr = cv::createCalibrateDebevec();
+    calibrate_hdr->process(source_images.toStdVector(),response,times.toStdVector());
+
+    cv::Mat hdr;
+    cv::Ptr<cv::MergeDebevec> merge_debevec = cv::createMergeDebevec();
+    merge_debevec->process(source_images.toStdVector(),hdr,times.toStdVector(),response);
+
+    cv::Mat ldr;
+    cv::Ptr<cv::TonemapDurand> tonemap = cv::createTonemapDurand(2.2f);
+    tonemap->process(hdr,ldr);
+
+    cv::Ptr<cv::CalibrateDebevec> calibrate = cv::createCalibrateDebevec();
+    calibrate->process(images.toStdVector(),response,times.toStdVector());
+
+    cv::Mat fusion;
+    cv::Ptr<cv::MergeMertens> merge_mertens = cv::createMergeMertens();
+    merge_mertens->process(images.toStdVector(),fusion);
+
+    cv::imwrite("../images/HDR0.jpg", fusion * 255);
+    cv::imwrite("../images/HDR1.jpg", ldr * 255);
+    cv::imwrite("../images/HDR2.hdr", hdr);
 }

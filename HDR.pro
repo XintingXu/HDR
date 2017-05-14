@@ -15,12 +15,12 @@ HEADERS += \
     projectionThreads.h \
     shiftCalculationThreads.h
 
-INCLUDEPATH += /usr/local/opencv-arm/include
+INCLUDEPATH += /usr/local/opencv-pc/include
 
 if(contains(DEFINES,RPI)){
-    LIBS += -L/usr/local/opencv-arm/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -ltbb
+    LIBS += -L/usr/local/opencv-arm/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs -lopencv_photo -ltbb
 }else{
-    LIBS += -L/usr/local/opencv-pc/lib -lopencv_core -lopencv_highgui -lopencv_imgproc
+    LIBS += -L/usr/local/opencv-pc/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs -lopencv_photo -ltbb
 }
 
 INSTALLS        = target

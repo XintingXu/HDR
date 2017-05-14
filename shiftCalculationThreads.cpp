@@ -73,8 +73,8 @@ ShiftCalculationD::~ShiftCalculationD(){
 }
 
 void ShiftCalculationD::run(){
-    int suitableKesi;
-    double argmin;
+    int suitableKesi = 0.0;
+    double argmin = 0.0;
 
     int search_min = searchRange * (-1);
     int search_max = qAbs(searchRange);
